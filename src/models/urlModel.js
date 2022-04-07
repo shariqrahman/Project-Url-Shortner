@@ -16,9 +16,10 @@ const urlSchema = new mongoose.Schema( {
     shortUrl: {
         type: String,
         unique: true,
+        lowercase: true,
         require: true,
         trim: true
     }
-})
+}, {timestamps: true})
 
 module.exports = mongoose.model('urlCollection', urlSchema)
