@@ -28,20 +28,15 @@ const urlShortner = async function (req, res) {
     try {
         let baseUrl = 'http://localhost:3000';
         let longUrl = req.body.longUrl
-        
 
         if (!longUrl) {
-            return res.status(400).send({ status: false, msg: "Please provide a longUrl" })
+            return res.status(400).send({ status: false, message: "Please provide a longUrl" })
         }
 
         let checkUrl = longUrl.trim()
 
-        if (!(/^https?:\/\/\w/).test(baseUrl)) {
-            return res.status(400).send({ status: false, msg: "Please check your Base Url, Provide a valid One." })
-        }
-
-        if (!(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%.\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%\+.~#?&//=]*)/.test(checkUrl))) {
-            return res.status(400).send({ status: false, msg: "Please provide a valid longUrl" })
+        if ((!(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%.\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%\+.~#?&//=]*)/).test(checkUrl))) {
+            return res.status(400).send({ status: false, message: "Please provide a valid longUrl" })
         }
 
         let shortUrl = await GET_ASYNC(`${checkUrl}`)
@@ -63,14 +58,14 @@ const urlShortner = async function (req, res) {
                
         await urlModel.create(url)
 
-        const url2 = await urlModel.findOne({urlCode}).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 })
+        const findUrl = await urlModel.findOne({urlCode}).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 })
         
-        await SET_ASYNC(`${checkUrl}`, JSON.stringify(url2))
-        return res.status(201).send({ status: true, url: url2 })
+        await SET_ASYNC(`${checkUrl}`, JSON.stringify(findUrl), "EX", 20)
+        return res.status(201).send({ status: true, url: findUrl })
     }
     catch (error) {
         console.log(error)
-        return res.status(500).send({ status: false, msg: error.message })
+        return res.status(500).send({ status: false, message: error.message })
     }
 }
 
@@ -83,10 +78,6 @@ const urlCode = async function (req, res) {
         
         const cacheUrl = await GET_ASYNC(`${urlCode}`)
 
-        // if(urlCode.length != 9) {
-        //     return res.status(400).send({status: false, message: 'Please Provide Valid urlCode'})
-        // }
-
         if(cacheUrl) {
             return res.status(302).redirect(JSON.parse(cacheUrl))
         }
@@ -97,7 +88,7 @@ const urlCode = async function (req, res) {
         else {
             let oldUrl = url.longUrl
             res.status(302).redirect(oldUrl)
-            await SET_ASYNC(`${urlCode}`, JSON.stringify(url.longUrl))
+            await SET_ASYNC(`${urlCode}`, JSON.stringify(url.longUrl),"EX", 20)
         }
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message })
